@@ -34,6 +34,10 @@ namespace TSC {
         ros::Subscriber sub;
 
         pcl::PointCloud<pcl::PointXYZI> inputCloud;
+        pcl::PointCloud<pcl::PointXYZI> firstClustered;
+        pcl::PointCloud<pcl::PointXYZI> seconedClustered;
+        std::vector<pcl::PointIndices> cluster_indices;
+
         void SubscribeCallback(const sensor_msgs::PointCloud2ConstPtr& input_data);
 
     };
@@ -55,5 +59,13 @@ void TSC::TwoStepClustering::Run(){
 }
 
 void TSC::TwoStepClustering::SubscribeCallback(const sensor_msgs::PointCloud2ConstPtr& input_data){
+    pcl::fromROSMsg(*input_data, inputCloud);
+    FirstClustering();
+    SecondClustering();
+    AfterClustering();
+    Publish();
+}
+
+void TSC::TwoStepClustering::FirstClustering(){
     pcl::fromROSMsg(*input_data, inputCloud);
 }
