@@ -32,8 +32,8 @@ inline bool comparePointClusters (const pcl::PointIndices &a, const pcl::PointIn
 }
 
 template <typename PointT>
-inline bool calculateTolerence (PointT point, double degree) {
-    float distance = point.x * point.x + point.y * point.y + point.z * point.z;
+inline float calculateTolerence (PointT point, double degree) {
+    float distance = sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
     float sinAngle = (float)sin(degree * 3.14159265358979 / 180);
     return distance * sinAngle;
 }
@@ -41,7 +41,7 @@ inline bool calculateTolerence (PointT point, double degree) {
 template <typename PointT>
 void FastClustering<PointT>::extract(std::vector<pcl::PointIndices>& cluster_indices){
 
-    if (search_method->getInputCloud ()->points.size () != input_cloud.points.size ()) {
+    if (search_method->getInputCloud ()->points.size () != input_cloud->points.size ()) {
         PCL_ERROR ("[extractFastClusters] Tree built for a different point cloud dataset (%lu) than the input cloud (%lu)!\n", 
                     search_method->getInputCloud ()->points.size (), input_cloud->points.size ());
         return;
@@ -87,5 +87,5 @@ void FastClustering<PointT>::extract(std::vector<pcl::PointIndices>& cluster_ind
             cluster_indices.push_back (r);
         }
     }
-    std::sort (cluster_indices.rbegin (), cluster_indices.rend (), comparePointClusters);
+    //std::sort (cluster_indices.rbegin (), cluster_indices.rend (), comparePointClusters);
 }

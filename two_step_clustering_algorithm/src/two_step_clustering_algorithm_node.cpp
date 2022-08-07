@@ -12,18 +12,12 @@
 #include <two_step_clustering_algorithm/cluster_process.h>
 
 
-
-void data_process(const sensor_msgs::PointCloud2ConstPtr& scan){
-
-}
-
-
 int main(int argc, char**argv) {
     ros::init(argc, argv, "two_step_clustering_algorithm");
-	ros::NodeHandle nh;      
-    ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud2> ("/velodyne_points", 1, data_process);
-    
 
-    ros::spin();
+    cout << "hello\n";
+
+    TSC::TwoStepClustering TSClustering;
+    TSClustering.Run();
 
 }
