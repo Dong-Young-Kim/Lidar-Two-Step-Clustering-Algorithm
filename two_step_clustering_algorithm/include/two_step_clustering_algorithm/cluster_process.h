@@ -21,19 +21,22 @@ namespace TSC {
     public:
         TwoStepClustering();
         void Run();
-    private:
-        ros::NodeHandle nh;
-        ros::Publisher pub;
-        ros::Subscriber sub;
 
-        pcl::PointCloud<pcl::PointXYZI> inputCloud;
-        pcl::PointCloud<pcl::PointXYZI> firstClustered;
-        pcl::PointCloud<pcl::PointXYZI> seconedClustered;
-        std::vector<pcl::PointIndices> first_cluster_indices;
-        std::vector<pcl::PointIndices> second_cluster_indices;
+    private:
+        ros::NodeHandle     nh;
+        ros::Publisher      pub;
+        ros::Subscriber     sub;
+
+        pcl::PointCloud<pcl::PointXYZI>     inputCloud;
+        pcl::PointCloud<pcl::PointXYZI>     firstClustered;
+        pcl::PointCloud<pcl::PointXYZI>     seconedClustered;
+        std::vector<pcl::PointIndices>      first_cluster_indices;
+        std::vector<pcl::PointIndices>      second_cluster_indices;
+        std::vector<struct objInfo>         objs;
     
         void InitNode();
         void SubscribeCallback(const sensor_msgs::PointCloud2ConstPtr& input_data);
+
         void FirstClustering();
         void SecondClustering();
         void AfterClustering();
@@ -59,6 +62,7 @@ namespace TSC {
 
 TSC::TwoStepClustering::TwoStepClustering(){
     InitNode();
+    objs.resize(100);
 }
 
 void TSC::TwoStepClustering::InitNode(){
@@ -104,19 +108,19 @@ void TSC::TwoStepClustering::SecondClustering(){
 }
 
 void TSC::TwoStepClustering::AfterClustering(){
-    std::vector<struct objInfo> objs;
+    //objs.resize(first_cluster_indices.size());
 
     int intensityValue = 0;
-    for (std::vector<pcl::PointIndices>::iterator it = first_cluster_indices.begin(); it != this->first_cluster_indices.end(); ++it, intensityValue++){
+    for (std::vector<pcl::PointIndices>::iterator it = this->first_cluster_indices.begin(); it != this->first_cluster_indices.end(); ++it, intensityValue++){
 
         std::pair<float,float> x(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest()); //first = min, second = max
         std::pair<float,float> y(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
         std::pair<float,float> z(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
 
     	for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit){
-            pcl::PointXYZI pt = inputCloud->points[*pit];
+            pcl::PointXYZI pt = inputCloud.points[*pit];
             pt.intensity = intensityValue % 10;
-            retCloud.push_back(pt); //change >> not make retcloud here  >> make at filter
+            this->firstClustered.push_back(pt); //change >> not make retcloud here  >> make at filter
             if(pt.x < x.first)      x.first = pt.x;
             if(pt.x > x.second)     x.second = pt.x;
             if(pt.y < y.first)      y.first = pt.y;
@@ -129,12 +133,10 @@ void TSC::TwoStepClustering::AfterClustering(){
                             (x.first+x.second)/2, (y.first+y.second)/2, (z.first+z.second)/2,
                             x.first, y.first, z.first, x.second, y.second, z.second,
                             (short)(intensityValue % 10)};
-        objs.push_back(tmp_obj);
+        //objs.push_back(tmp_obj);
+        //this->objs[intensityValue] = tmp_obj;
+        //objs.at(0) = tmp_obj;
     }
-    
-    //print_OBJ(sorted_OBJ);
-    msg_process(sorted_OBJ);
-    object_msg_process(objs);
 }
 
 void TSC::TwoStepClustering::Publish(){
