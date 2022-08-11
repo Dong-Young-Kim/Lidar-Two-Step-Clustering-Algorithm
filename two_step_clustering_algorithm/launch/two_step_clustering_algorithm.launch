@@ -1,0 +1,12 @@
+<launch>
+
+  <!--<include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>-->
+  <include file="$(find Lidar_3DOD_2022)/launch/Lidar_3DOD_2022_launch.launch"/>
+
+  <node pkg="rviz" type="rviz" name="rviz" args=""/> 
+
+  <node pkg="two_step_clustering_algorithm" type="two_step_clustering_algorithm_node" name="two_step_clustering_algorithm_node" output="screen">
+    <param name="switch_multi_LiDAR" value="false"/>
+  </node>
+
+</launch>

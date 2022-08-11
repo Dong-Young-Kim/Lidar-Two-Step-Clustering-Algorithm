@@ -35,7 +35,7 @@ template <typename PointT>
 inline float calculateTolerence (PointT point, double degree) {
     float distance = sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
     float sinAngle = (float)sin(degree * 3.14159265358979 / 180);
-    return distance * sinAngle;
+    return distance * sinAngle + 0.02; //for near objects
 }
 
 template <typename PointT>
@@ -87,5 +87,5 @@ void FastClustering<PointT>::extract(std::vector<pcl::PointIndices>& cluster_ind
             cluster_indices.push_back (r);
         }
     }
-    //std::sort (cluster_indices.rbegin (), cluster_indices.rend (), comparePointClusters);
+    std::sort (cluster_indices.rbegin (), cluster_indices.rend (), comparePointClusters);
 }
