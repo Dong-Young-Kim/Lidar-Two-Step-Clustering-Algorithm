@@ -69,6 +69,7 @@ void TSC::TwoStepClustering::SubscribeCallbackMulti_1(const sensor_msgs::PointCl
     FirstClustering(inputCloudMulti_1, firstClusterIndicesMulti_1);
     AfterFirstClustering(inputCloudMulti_1, firstClusterIndicesMulti_1, firstClusteredMulti_1, objsMulti_1);
     std::get<0>(multiLiDARProcessFlag) = 1;
+    MergePC();
 }
 
 void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCloud2ConstPtr& input_data){
@@ -79,6 +80,7 @@ void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCl
     FirstClustering(inputCloudMulti_2, firstClusterIndicesMulti_2);
     AfterFirstClustering(inputCloudMulti_2, firstClusterIndicesMulti_2, firstClusteredMulti_2, objsMulti_2);
     std::get<1>(multiLiDARProcessFlag) = 1;
+    MergePC();
 }
 
 void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
@@ -97,7 +99,6 @@ void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputS
     Eigen::Matrix4f transform_1 = Eigen::Matrix4f::Identity();
 
     // Define a rotation matrix (see https://en.wikipedia.org/wiki/Rotation_matrix)
-    thetaRotation = M_PI/2; // The angle of rotation in radians
     transform_1 (1,1) = std::cos (thetaRotation);
     transform_1 (1,2) = -sin(thetaRotation);
     transform_1 (2,1) = sin (thetaRotation);
@@ -130,7 +131,12 @@ void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputS
 }
 
 void TSC::TwoStepClustering::MergePC(){
-    if
+    if(!std::get<0>(multiLiDARProcessFlag) || !std::get<1>(multiLiDARProcessFlag)) return;
+    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1, M_PI/2, -0.01);
+    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, -M_PI/2, 0.01);
+
+    rotatedCloudMultiMerged = rotatedCloudMulti_1 + rotatedCloudMulti_2;
+
 }
 
 void TSC::TwoStepClustering::Run(){

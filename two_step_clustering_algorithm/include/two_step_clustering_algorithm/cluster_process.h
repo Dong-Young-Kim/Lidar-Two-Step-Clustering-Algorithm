@@ -54,6 +54,7 @@ namespace TSC {
 
         pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_2;
+        pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMultiMerged;
 
 
         pcl::PointCloud<pcl::PointXYZI>     firstClusteredMulti_1;
@@ -73,7 +74,7 @@ namespace TSC {
 
         void TransformPC                (pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
                                          float thetaRotation, float meterTransform);
-        void mergePC                    ();
+        void MergePC                    ();
 
         void InitNode                   ();
         void InitNodeMultiLiDAR         ();
