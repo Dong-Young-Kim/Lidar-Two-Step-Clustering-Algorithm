@@ -13,7 +13,7 @@ TSC::TwoStepClustering::TwoStepClustering(){
     }
 }
 
-void TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource){
+void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult, float thetaRotation, float meterTransform){
     /* Reminder: how transformation matrices work :
 
             |-------> This column is the translation
@@ -28,15 +28,15 @@ void TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource){
     Eigen::Matrix4f transform_1 = Eigen::Matrix4f::Identity();
 
     // Define a rotation matrix (see https://en.wikipedia.org/wiki/Rotation_matrix)
-    float theta = M_PI/4; // The angle of rotation in radians
-    transform_1 (0,0) = std::cos (theta);
-    transform_1 (0,1) = -sin(theta);
-    transform_1 (1,0) = sin (theta);
-    transform_1 (1,1) = std::cos (theta);
+    thetaRotation = M_PI/2; // The angle of rotation in radians
+    transform_1 (1,1) = std::cos (thetaRotation);
+    transform_1 (1,2) = -sin(thetaRotation);
+    transform_1 (2,1) = sin (thetaRotation);
+    transform_1 (2,2) = std::cos (thetaRotation);
     //    (row, column)
 
-    // Define a translation of 2.5 meters on the x axis.
-    transform_1 (0,3) = 2.5;
+    // Define a translation of meterTransform meters on the y axis.
+    transform_1 (1,3) = meterTransform;
 
     // Print the transformation
     printf ("Method #1: using a Matrix4f\n");
@@ -48,19 +48,16 @@ void TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource){
     Eigen::Affine3f transform_2 = Eigen::Affine3f::Identity();
 
     // Define a translation of 2.5 meters on the x axis.
-    transform_2.translation() << 2.5, 0.0, 0.0;
+    transform_2.translation() << 0.0, meterTransform, 0.0;
 
     // The same rotation matrix as before; theta radians around Z axis
-    transform_2.rotate (Eigen::AngleAxisf (theta, Eigen::Vector3f::UnitZ()));
+    transform_2.rotate (Eigen::AngleAxisf (thetaRotation, Eigen::Vector3f::UnitX()));
 
     // Print the transformation
     printf ("\nMethod #2: using an Affine3f\n");
     std::cout << transform_2.matrix() << std::endl;
 
-    // Executing the transformation
-    pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZI> ());
-    // You can either apply transform_1 or transform_2; they are the same
-    pcl::transformPointCloud (inputSource, *transformed_cloud, transform_2);
+    pcl::transformPointCloud (inputSource, outputResult, transform_2);
 }
 
 void TSC::TwoStepClustering::InitNode(){

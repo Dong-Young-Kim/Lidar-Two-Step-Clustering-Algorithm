@@ -47,6 +47,10 @@ namespace TSC {
         pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_2;
 
+        pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_1;
+        pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_2;
+
+
         pcl::PointCloud<pcl::PointXYZI>     firstClusteredMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     firstClusteredMulti_2;
 
@@ -62,7 +66,8 @@ namespace TSC {
         bool switchMultiLiDAR = false;
         std::tuple<bool, bool, bool, bool, bool> multiLiDARProcessFlag;
 
-        void TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource);
+        void TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
+                         float thetaRotation, float meterTransform);
 
         void InitNode                   ();
         void InitNodeMultiLiDAR         ();
