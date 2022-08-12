@@ -41,8 +41,13 @@ namespace TSC {
 
     protected:
         ros::NodeHandle     nh;
+
         ros::Subscriber     sub_multi_lidar1;
         ros::Subscriber     sub_multi_lidar2;
+        ros::Publisher      pub_RotetedAndMergedMulti;
+        ros::Publisher      pub_firstClusteredMulti_1;
+        ros::Publisher      pub_firstClusteredMulti_2;
+
 
         pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_2;
@@ -66,8 +71,9 @@ namespace TSC {
         bool switchMultiLiDAR = false;
         std::tuple<bool, bool, bool, bool, bool> multiLiDARProcessFlag;
 
-        void TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
-                         float thetaRotation, float meterTransform);
+        void TransformPC                (pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
+                                         float thetaRotation, float meterTransform);
+        void mergePC                    ();
 
         void InitNode                   ();
         void InitNodeMultiLiDAR         ();
@@ -85,8 +91,8 @@ namespace TSC {
 
     private:
         ros::Subscriber     sub;
-        ros::Publisher      pub_first;
-        ros::Publisher      pub_second;
+        ros::Publisher      pub_firstClustered;
+        ros::Publisher      pub_secondClustered;
 
         pcl::PointCloud<pcl::PointXYZI>     inputCloud;       
         pcl::PointCloud<pcl::PointXYZI>     firstClustered;
