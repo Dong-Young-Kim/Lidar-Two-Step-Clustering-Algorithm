@@ -8,7 +8,8 @@
   <node pkg="rviz" type="rviz" name="rviz" args=""/> 
 
   <node pkg="two_step_clustering_algorithm" type="two_step_clustering_algorithm_node" name="two_step_clustering_algorithm_node" output="screen">
-    <param name="switch_multi_LiDAR" value="true"/>
+    <param name="switch_multi_LiDAR"  value="true"/>
+    <param name="trans_factor"        value="0.075"/>
   </node>
 
 </launch>

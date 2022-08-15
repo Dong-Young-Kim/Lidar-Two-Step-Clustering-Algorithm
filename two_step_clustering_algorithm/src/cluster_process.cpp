@@ -2,12 +2,14 @@
 
 
 TSC::TwoStepClustering::TwoStepClustering(){
-    nh.getParam("two_step_clustering_algorithm", switchMultiLiDAR);
+    nh.getParam("/two_step_clustering_algorithm_node/switch_multi_LiDAR", switchMultiLiDAR);
     switch (switchMultiLiDAR){
-    case true:
+    case 1:
         InitNodeMultiLiDAR();
+        
+        nh.getParam("/two_step_clustering_algorithm_node/trans_factor", transform_factor);
         break;
-    case false:
+    case 0:
         InitNode();
         break;
     }
@@ -63,24 +65,24 @@ void TSC::TwoStepClustering::SubscribeCallback(const sensor_msgs::PointCloud2Con
 
 void TSC::TwoStepClustering::SubscribeCallbackMulti_1(const sensor_msgs::PointCloud2ConstPtr& input_data){
     if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
-    else return;
+    //else return;
     std::cout << "data input from first LiDAR\n";
     pcl::fromROSMsg(*input_data, inputCloudMulti_1);
     FirstClustering(inputCloudMulti_1, firstClusterIndicesMulti_1);
     AfterFirstClustering(inputCloudMulti_1, firstClusterIndicesMulti_1, firstClusteredMulti_1, objsMulti_1);
     std::get<0>(multiLiDARProcessFlag) = 1;
-    MergePC();
+    if(std::get<1>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
 }
 
 void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCloud2ConstPtr& input_data){
     if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
-    else return;
-    std::cout << "data input from first LiDAR\n";
+    //else return;
+    std::cout << "data input from second LiDAR\n";
     pcl::fromROSMsg(*input_data, inputCloudMulti_2);
     FirstClustering(inputCloudMulti_2, firstClusterIndicesMulti_2);
     AfterFirstClustering(inputCloudMulti_2, firstClusterIndicesMulti_2, firstClusteredMulti_2, objsMulti_2);
     std::get<1>(multiLiDARProcessFlag) = 1;
-    MergePC();
+    if(std::get<0>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
 }
 
 void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
@@ -96,46 +98,51 @@ void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputS
         METHOD #1: Using a Matrix4f
         This is the "manual" method, perfect to understand but error prone !
     */
-    Eigen::Matrix4f transform_1 = Eigen::Matrix4f::Identity();
+    // Eigen::Matrix4f transform_1 = Eigen::Matrix4f::Identity();
 
-    // Define a rotation matrix (see https://en.wikipedia.org/wiki/Rotation_matrix)
-    transform_1 (1,1) = std::cos (thetaRotation);
-    transform_1 (1,2) = -sin(thetaRotation);
-    transform_1 (2,1) = sin (thetaRotation);
-    transform_1 (2,2) = std::cos (thetaRotation);
-    //    (row, column)
+    // // Define a rotation matrix (see https://en.wikipedia.org/wiki/Rotation_matrix)
+    // transform_1 (1,1) = std::cos (thetaRotation);
+    // transform_1 (1,2) = -sin(thetaRotation);
+    // transform_1 (2,1) = sin (thetaRotation);
+    // transform_1 (2,2) = std::cos (thetaRotation);
+    // //    (row, column)
 
-    // Define a translation of meterTransform meters on the y axis.
-    transform_1 (1,3) = meterTransform;
+    // // Define a translation of meterTransform meters on the y axis.
+    // transform_1 (1,3) = meterTransform;
 
-    // Print the transformation
-    printf ("Method #1: using a Matrix4f\n");
-    std::cout << transform_1 << std::endl;
+    // // Print the transformation
+    // printf ("Method #1: using a Matrix4f\n");
+    // std::cout << transform_1 << std::endl;
 
     /*  METHOD #2: Using a Affine3f
         This method is easier and less error prone
     */
     Eigen::Affine3f transform_2 = Eigen::Affine3f::Identity();
 
-    // Define a translation of 2.5 meters on the x axis.
+    // Define a translation of 2.5 meters on the y axis.
     transform_2.translation() << 0.0, meterTransform, 0.0;
 
     // The same rotation matrix as before; theta radians around Z axis
     transform_2.rotate (Eigen::AngleAxisf (thetaRotation, Eigen::Vector3f::UnitX()));
 
     // Print the transformation
-    printf ("\nMethod #2: using an Affine3f\n");
-    std::cout << transform_2.matrix() << std::endl;
+    // printf ("\nMethod #2: using an Affine3f\n");
+    // std::cout << transform_2.matrix() << std::endl;
 
     pcl::transformPointCloud (inputSource, outputResult, transform_2);
 }
 
 void TSC::TwoStepClustering::MergePC(){
-    if(!std::get<0>(multiLiDARProcessFlag) || !std::get<1>(multiLiDARProcessFlag)) return;
-    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1, M_PI/2, -0.01);
-    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, -M_PI/2, 0.01);
+    //if(!std::get<0>(multiLiDARProcessFlag) || !std::get<1>(multiLiDARProcessFlag)) return;
+    std::cout << transform_factor << std::endl;
+    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1, -M_PI/4, +transform_factor);
+    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, +M_PI/4, -transform_factor);
 
     rotatedCloudMultiMerged = rotatedCloudMulti_1 + rotatedCloudMulti_2;
+
+
+    pub_RotetedAndMergedMulti.publish(this->Publish(this->rotatedCloudMultiMerged));
+    multiLiDARProcessFlag = std::make_tuple(0,0,0,0,1);
 
 }
 

@@ -70,6 +70,7 @@ namespace TSC {
 
     
         bool switchMultiLiDAR = false;
+        float transform_factor;
         std::tuple<bool, bool, bool, bool, bool> multiLiDARProcessFlag;
 
         void TransformPC                (pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
