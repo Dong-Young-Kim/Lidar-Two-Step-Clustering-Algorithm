@@ -40,8 +40,26 @@ namespace TSC {
         void Run();
 
     protected:
+        //use common fuction
         ros::NodeHandle     nh;
 
+        void InitNode                   ();
+        void InitNodeMultiLiDAR         ();
+        void SubscribeCallback          (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
+        void SubscribeCallbackMulti_1   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
+        void SubscribeCallbackMulti_2   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
+
+        void AllClear                   ();
+        void AllClearMulti              ();
+        void FirstClustering            (pcl::PointCloud<pcl::PointXYZI>& input, std::vector<pcl::PointIndices>& output);
+        void SecondClustering           ();
+        void AfterFirstClustering       (pcl::PointCloud<pcl::PointXYZI>& inputPC, std::vector<pcl::PointIndices>& input, 
+                                         pcl::PointCloud<pcl::PointXYZI>& outputPC, std::vector<struct objInfo>& outputObjs);
+        sensor_msgs::PointCloud2 Publish(pcl::PointCloud<pcl::PointXYZI> pubCloud);
+        
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //use at multi lidar process
         ros::Subscriber     sub_multi_lidar1;
         ros::Subscriber     sub_multi_lidar2;
         ros::Publisher      pub_RotetedAndMergedMulti;
@@ -66,32 +84,27 @@ namespace TSC {
 
         std::vector<pcl::PointIndices>      firstClusterIndicesMulti_1;
         std::vector<pcl::PointIndices>      firstClusterIndicesMulti_2;
-
-
-    
         bool switchMultiLiDAR = false;
-        float transform_factor;
-        std::tuple<bool, bool, bool, bool, bool> multiLiDARProcessFlag;
+        float transform_factor; //using at getParam
+        std::tuple<bool, bool, bool, bool, bool> multiLiDARProcessFlag; 
+        //<multi1 input check, multi2 input check, multi1 output check, multi2 ouput check, all finish check> default <0,0,0,0,1>
 
         void TransformPC                (pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
                                          float thetaRotation, float meterTransform);
         void MergePC                    ();
-
-        void InitNode                   ();
-        void InitNodeMultiLiDAR         ();
-        void SubscribeCallback          (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
-        void SubscribeCallbackMulti_1   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
-        void SubscribeCallbackMulti_2   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
-
-        void AllClear                   ();
-        void AllClearMulti              ();
-        void FirstClustering            (pcl::PointCloud<pcl::PointXYZI>& input, std::vector<pcl::PointIndices>& output);
-        void SecondClustering           ();
-        void AfterFirstClustering       (pcl::PointCloud<pcl::PointXYZI>& inputPC, std::vector<pcl::PointIndices>& input, 
+        void SecondClusteringMulti      ();
+        void CrossPointCheck            (pcl::PointCloud<pcl::PointXYZI>& inputPC, std::vector<pcl::PointIndices>& input, 
                                          pcl::PointCloud<pcl::PointXYZI>& outputPC, std::vector<struct objInfo>& outputObjs);
-        sensor_msgs::PointCloud2 Publish(pcl::PointCloud<pcl::PointXYZI> pubCloud);
+        void UnionFind                  (pcl::PointCloud<pcl::PointXYZI>& inputPC, std::vector<pcl::PointIndices>& input, 
+                                         pcl::PointCloud<pcl::PointXYZI>& outputPC, std::vector<struct objInfo>& outputObjs);
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     private:
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //use at single lidar process
         ros::Subscriber     sub;
         ros::Publisher      pub_firstClustered;
         ros::Publisher      pub_secondClustered;
@@ -102,9 +115,8 @@ namespace TSC {
         std::vector<struct objInfo>         objs;
         std::vector<pcl::PointIndices>      firstClusterIndices;
         std::vector<pcl::PointIndices>      secondClusterIndices;
-
-
-
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     };
 
     class TwoStepClusteringMultiLiDAR : public TSC::TwoStepClustering{

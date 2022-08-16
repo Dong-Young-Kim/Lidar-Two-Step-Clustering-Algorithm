@@ -15,20 +15,20 @@ TSC::TwoStepClustering::TwoStepClustering(){
     }
 }
 
-void TSC::TwoStepClustering::InitNode(){
+void TSC::TwoStepClustering::InitNode(){  //single LiDAR
     pub_firstClustered = nh.advertise<sensor_msgs::PointCloud2> ("two_step_clustering_first_clusterd", 1);
     pub_secondClustered = nh.advertise<sensor_msgs::PointCloud2> ("two_step_clustering_second_clusterd", 1);
     sub = nh.subscribe<sensor_msgs::PointCloud2> ("/2_1_velodyne_points_ransac", 1, &TSC::TwoStepClustering::SubscribeCallback, this);
 }
 
-void TSC::TwoStepClustering::InitNodeMultiLiDAR(){
+void TSC::TwoStepClustering::InitNodeMultiLiDAR(){ //multi LiDAR
     pub_RotetedAndMergedMulti = nh.advertise<sensor_msgs::PointCloud2> ("/velodyne_points_rotation_merged", 1);
     multiLiDARProcessFlag = std::make_tuple(0,0,0,0,1);
 	sub_multi_lidar1 = nh.subscribe<sensor_msgs::PointCloud2> ("/lidar1/velodyne_points", 1, &TSC::TwoStepClustering::SubscribeCallbackMulti_1, this);
 	sub_multi_lidar2 = nh.subscribe<sensor_msgs::PointCloud2> ("/lidar2/velodyne_points", 1, &TSC::TwoStepClustering::SubscribeCallbackMulti_2, this);
 }
 
-void TSC::TwoStepClustering::AllClear(){
+void TSC::TwoStepClustering::AllClear(){ //single LiDAR
     firstClustered          .clear();
     seconedClustered        .clear();
     firstClusterIndices     .clear();
@@ -36,7 +36,7 @@ void TSC::TwoStepClustering::AllClear(){
     objs                    .clear();
 }
 
-void TSC::TwoStepClustering::AllClearMulti(){
+void TSC::TwoStepClustering::AllClearMulti(){ //multi LiDAR
     std::get<4>(multiLiDARProcessFlag) = 0;
 
     rotatedCloudMulti_1         .clear();
@@ -50,7 +50,12 @@ void TSC::TwoStepClustering::AllClearMulti(){
 
 }
 
-void TSC::TwoStepClustering::SubscribeCallback(const sensor_msgs::PointCloud2ConstPtr& input_data){
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//change process here
+
+void TSC::TwoStepClustering::SubscribeCallback(const sensor_msgs::PointCloud2ConstPtr& input_data){ //single LiDAR process manage here
     std::cout << "data input\n";
     AllClear();
     pcl::fromROSMsg(*input_data, inputCloud);
@@ -63,7 +68,7 @@ void TSC::TwoStepClustering::SubscribeCallback(const sensor_msgs::PointCloud2Con
 
 }
 
-void TSC::TwoStepClustering::SubscribeCallbackMulti_1(const sensor_msgs::PointCloud2ConstPtr& input_data){
+void TSC::TwoStepClustering::SubscribeCallbackMulti_1(const sensor_msgs::PointCloud2ConstPtr& input_data){ //multi LiDAR before merge
     if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
     //else return;
     std::cout << "data input from first LiDAR\n";
@@ -74,7 +79,7 @@ void TSC::TwoStepClustering::SubscribeCallbackMulti_1(const sensor_msgs::PointCl
     if(std::get<1>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
 }
 
-void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCloud2ConstPtr& input_data){
+void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCloud2ConstPtr& input_data){ //multi LiDAR before merge
     if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
     //else return;
     std::cout << "data input from second LiDAR\n";
@@ -85,8 +90,31 @@ void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCl
     if(std::get<0>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
 }
 
+void TSC::TwoStepClustering::MergePC(){ //multi LiDAR
+    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1, -M_PI/4, +transform_factor);
+    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, +M_PI/4, -transform_factor);
+
+    rotatedCloudMultiMerged = rotatedCloudMulti_1 + rotatedCloudMulti_2; //PC merge
+    pub_RotetedAndMergedMulti.publish(this->Publish(this->rotatedCloudMultiMerged));
+
+    SecondClusteringMulti();
+}
+
+void TSC::TwoStepClustering::SecondClusteringMulti(){ //multi LiDAR
+    
+    //CrossPointCheck(...);
+    //UnionFind(...);
+
+
+    multiLiDARProcessFlag = std::make_tuple(0,0,0,0,1); //reset all flag
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
-                                         float thetaRotation, float meterTransform){
+                                         float thetaRotation, float meterTransform){ //multi LiDAR
     /* Reminder: how transformation matrices work :
 
             |-------> This column is the translation
@@ -132,27 +160,13 @@ void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputS
     pcl::transformPointCloud (inputSource, outputResult, transform_2);
 }
 
-void TSC::TwoStepClustering::MergePC(){
-    //if(!std::get<0>(multiLiDARProcessFlag) || !std::get<1>(multiLiDARProcessFlag)) return;
-    std::cout << transform_factor << std::endl;
-    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1, -M_PI/4, +transform_factor);
-    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, +M_PI/4, -transform_factor);
-
-    rotatedCloudMultiMerged = rotatedCloudMulti_1 + rotatedCloudMulti_2;
-
-
-    pub_RotetedAndMergedMulti.publish(this->Publish(this->rotatedCloudMultiMerged));
-    multiLiDARProcessFlag = std::make_tuple(0,0,0,0,1);
-
-}
-
-void TSC::TwoStepClustering::Run(){
+void TSC::TwoStepClustering::Run(){ //common
     while(ros::ok()){
         ros::spinOnce();
     }
 }
 
-void TSC::TwoStepClustering::FirstClustering(pcl::PointCloud<pcl::PointXYZI>& input, std::vector<pcl::PointIndices>& output){
+void TSC::TwoStepClustering::FirstClustering(pcl::PointCloud<pcl::PointXYZI>& input, std::vector<pcl::PointIndices>& output){ //common
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZI>);
     *cloud = input;
     pcl::search::KdTree<pcl::PointXYZI>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZI>);
@@ -166,12 +180,12 @@ void TSC::TwoStepClustering::FirstClustering(pcl::PointCloud<pcl::PointXYZI>& in
     fc.extract(output);
 }
 
-void TSC::TwoStepClustering::SecondClustering(){
+void TSC::TwoStepClustering::SecondClustering(){ //common
 
 }
 
 void TSC::TwoStepClustering::AfterFirstClustering(pcl::PointCloud<pcl::PointXYZI>& inputPC, std::vector<pcl::PointIndices>& input, 
-                                                  pcl::PointCloud<pcl::PointXYZI>& outputPC, std::vector<struct objInfo>& outputObjs){
+                                                  pcl::PointCloud<pcl::PointXYZI>& outputPC, std::vector<struct objInfo>& outputObjs){ //common
     int intensityValue = 0;
     for (std::vector<pcl::PointIndices>::iterator it = input.begin(); it != input.end(); ++it, intensityValue++){
 
@@ -199,7 +213,7 @@ void TSC::TwoStepClustering::AfterFirstClustering(pcl::PointCloud<pcl::PointXYZI
     }
 }
 
-sensor_msgs::PointCloud2 TSC::TwoStepClustering::Publish(pcl::PointCloud<pcl::PointXYZI> pubCloud){
+sensor_msgs::PointCloud2 TSC::TwoStepClustering::Publish(pcl::PointCloud<pcl::PointXYZI> pubCloud){ //common
     sensor_msgs::PointCloud2 output;
     pcl::PCLPointCloud2 tmp_PCL;                                    //declare PCL_PC2
     pcl::toPCLPointCloud2(pubCloud, tmp_PCL);                       //PC -> PCL_PC2
