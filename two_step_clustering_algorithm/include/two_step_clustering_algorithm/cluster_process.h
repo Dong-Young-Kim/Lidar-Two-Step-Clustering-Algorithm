@@ -48,6 +48,7 @@ namespace TSC {
         void SubscribeCallback          (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
         void SubscribeCallbackMulti_1   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
         void SubscribeCallbackMulti_2   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
+        void SubscribeCallbackMulti_3   (const sensor_msgs::PointCloud2ConstPtr& input_data);       //edit overall process here
 
         void AllClear                   ();
         void AllClearMulti              ();
@@ -62,35 +63,40 @@ namespace TSC {
         //use at multi lidar process
         ros::Subscriber     sub_multi_lidar1;
         ros::Subscriber     sub_multi_lidar2;
-        ros::Publisher      pub_RotetedAndMergedMulti;
+        ros::Subscriber     sub_multi_lidar3;
         ros::Publisher      pub_firstClusteredMulti_1;
         ros::Publisher      pub_firstClusteredMulti_2;
-
+        ros::Publisher      pub_firstClusteredMulti_3;
+        ros::Publisher      pub_RotetedAndMergedMulti;
 
         pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_2;
+        pcl::PointCloud<pcl::PointXYZI>     inputCloudMulti_3;
 
         pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_2;
+        pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMulti_3;
         pcl::PointCloud<pcl::PointXYZI>     rotatedCloudMultiMerged;
-
 
         pcl::PointCloud<pcl::PointXYZI>     firstClusteredMulti_1;
         pcl::PointCloud<pcl::PointXYZI>     firstClusteredMulti_2;
+        pcl::PointCloud<pcl::PointXYZI>     firstClusteredMulti_3;
 
         std::vector<struct objInfo>         objsMulti_1;
         std::vector<struct objInfo>         objsMulti_2;
-
+        std::vector<struct objInfo>         objsMulti_3;
 
         std::vector<pcl::PointIndices>      firstClusterIndicesMulti_1;
         std::vector<pcl::PointIndices>      firstClusterIndicesMulti_2;
+        std::vector<pcl::PointIndices>      firstClusterIndicesMulti_3;
         bool switchMultiLiDAR = false;
-        float transform_factor; //using at getParam
+        float transform_factor_y; //using at getParam
+        float transform_factor_z; //using at getParam
         std::tuple<bool, bool, bool, bool, bool> multiLiDARProcessFlag; 
-        //<multi1 input check, multi2 input check, multi1 output check, multi2 ouput check, all finish check> default <0,0,0,0,1>
+        //<multi1 input check, multi2 input check, multi3 input check, process check, all finish check> default <0,0,0,0,1>
 
         void TransformPC                (pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
-                                         float thetaRotation, float meterTransform);
+                                         float thetaRotation, float meterTransform_y, float meterTransform_z);
         void MergePC                    ();
         void SecondClusteringMulti      ();
         void CrossPointCheck            (pcl::PointCloud<pcl::PointXYZI>& inputPC, std::vector<pcl::PointIndices>& input, 

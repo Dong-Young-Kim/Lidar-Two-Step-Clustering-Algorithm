@@ -7,7 +7,8 @@ TSC::TwoStepClustering::TwoStepClustering(){
     case 1:
         InitNodeMultiLiDAR();
         
-        nh.getParam("/two_step_clustering_algorithm_node/trans_factor", transform_factor);
+        nh.getParam("/two_step_clustering_algorithm_node/trans_factor_y", transform_factor_y);
+        nh.getParam("/two_step_clustering_algorithm_node/trans_factor_z", transform_factor_z);
         break;
     case 0:
         InitNode();
@@ -26,6 +27,7 @@ void TSC::TwoStepClustering::InitNodeMultiLiDAR(){ //multi LiDAR
     multiLiDARProcessFlag = std::make_tuple(0,0,0,0,1);
 	sub_multi_lidar1 = nh.subscribe<sensor_msgs::PointCloud2> ("/lidar1/velodyne_points", 1, &TSC::TwoStepClustering::SubscribeCallbackMulti_1, this);
 	sub_multi_lidar2 = nh.subscribe<sensor_msgs::PointCloud2> ("/lidar2/velodyne_points", 1, &TSC::TwoStepClustering::SubscribeCallbackMulti_2, this);
+	sub_multi_lidar3 = nh.subscribe<sensor_msgs::PointCloud2> ("/lidar3/velodyne_points", 1, &TSC::TwoStepClustering::SubscribeCallbackMulti_3, this);
 }
 
 void TSC::TwoStepClustering::AllClear(){ //single LiDAR
@@ -41,13 +43,16 @@ void TSC::TwoStepClustering::AllClearMulti(){ //multi LiDAR
 
     rotatedCloudMulti_1         .clear();
     rotatedCloudMulti_2         .clear();
+    rotatedCloudMulti_3         .clear();
     firstClusteredMulti_1       .clear();
     firstClusteredMulti_2       .clear();
+    firstClusteredMulti_3       .clear();
     objsMulti_1                 .clear();
     objsMulti_2                 .clear();
+    objsMulti_3                 .clear();
     firstClusterIndicesMulti_1  .clear();
     firstClusterIndicesMulti_2  .clear();
-
+    firstClusterIndicesMulti_3  .clear();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,31 +75,40 @@ void TSC::TwoStepClustering::SubscribeCallback(const sensor_msgs::PointCloud2Con
 
 void TSC::TwoStepClustering::SubscribeCallbackMulti_1(const sensor_msgs::PointCloud2ConstPtr& input_data){ //multi LiDAR before merge
     if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
-    //else return;
     std::cout << "data input from first LiDAR\n";
     pcl::fromROSMsg(*input_data, inputCloudMulti_1);
     FirstClustering(inputCloudMulti_1, firstClusterIndicesMulti_1);
     AfterFirstClustering(inputCloudMulti_1, firstClusterIndicesMulti_1, firstClusteredMulti_1, objsMulti_1);
     std::get<0>(multiLiDARProcessFlag) = 1;
-    if(std::get<1>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
+    if(std::get<1>(multiLiDARProcessFlag) && std::get<2>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
 }
 
 void TSC::TwoStepClustering::SubscribeCallbackMulti_2(const sensor_msgs::PointCloud2ConstPtr& input_data){ //multi LiDAR before merge
     if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
-    //else return;
     std::cout << "data input from second LiDAR\n";
     pcl::fromROSMsg(*input_data, inputCloudMulti_2);
     FirstClustering(inputCloudMulti_2, firstClusterIndicesMulti_2);
     AfterFirstClustering(inputCloudMulti_2, firstClusterIndicesMulti_2, firstClusteredMulti_2, objsMulti_2);
     std::get<1>(multiLiDARProcessFlag) = 1;
-    if(std::get<0>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
+    if(std::get<0>(multiLiDARProcessFlag) && std::get<2>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
+}
+
+void TSC::TwoStepClustering::SubscribeCallbackMulti_3(const sensor_msgs::PointCloud2ConstPtr& input_data){ //multi LiDAR before merge
+    if(std::get<4>(multiLiDARProcessFlag)) AllClearMulti();
+    std::cout << "data input from third LiDAR\n";
+    pcl::fromROSMsg(*input_data, inputCloudMulti_3);
+    FirstClustering(inputCloudMulti_3, firstClusterIndicesMulti_3);
+    AfterFirstClustering(inputCloudMulti_3, firstClusterIndicesMulti_3, firstClusteredMulti_3, objsMulti_3);
+    std::get<2>(multiLiDARProcessFlag) = 1;
+    if(std::get<0>(multiLiDARProcessFlag) && std::get<1>(multiLiDARProcessFlag)) MergePC(); //check another callback function done
 }
 
 void TSC::TwoStepClustering::MergePC(){ //multi LiDAR
-    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1, -M_PI/4, +transform_factor);
-    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, +M_PI/4, -transform_factor);
+    TransformPC(firstClusteredMulti_1, rotatedCloudMulti_1,          0,                   0,                   0);
+    TransformPC(firstClusteredMulti_2, rotatedCloudMulti_2, -M_PI*5/24, +transform_factor_y, +transform_factor_z);
+    TransformPC(firstClusteredMulti_3, rotatedCloudMulti_3, +M_PI*5/24, -transform_factor_y, +transform_factor_z);
 
-    rotatedCloudMultiMerged = rotatedCloudMulti_1 + rotatedCloudMulti_2; //PC merge
+    rotatedCloudMultiMerged = rotatedCloudMulti_1 + rotatedCloudMulti_2 + rotatedCloudMulti_3; //PC merge
     pub_RotetedAndMergedMulti.publish(this->Publish(this->rotatedCloudMultiMerged));
 
     SecondClusteringMulti();
@@ -114,7 +128,7 @@ void TSC::TwoStepClustering::SecondClusteringMulti(){ //multi LiDAR
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputSource, pcl::PointCloud<pcl::PointXYZI>& outputResult,
-                                         float thetaRotation, float meterTransform){ //multi LiDAR
+                                         float thetaRotation, float meterTransform_y, float meterTransform_z){ //multi LiDAR
     /* Reminder: how transformation matrices work :
 
             |-------> This column is the translation
@@ -148,7 +162,7 @@ void TSC::TwoStepClustering::TransformPC(pcl::PointCloud<pcl::PointXYZI>& inputS
     Eigen::Affine3f transform_2 = Eigen::Affine3f::Identity();
 
     // Define a translation of 2.5 meters on the y axis.
-    transform_2.translation() << 0.0, meterTransform, 0.0;
+    transform_2.translation() << 0.0, meterTransform_y, meterTransform_z;
 
     // The same rotation matrix as before; theta radians around Z axis
     transform_2.rotate (Eigen::AngleAxisf (thetaRotation, Eigen::Vector3f::UnitX()));
