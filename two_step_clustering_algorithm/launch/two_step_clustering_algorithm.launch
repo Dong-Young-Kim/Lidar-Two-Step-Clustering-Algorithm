@@ -3,7 +3,7 @@
   <!--<include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>-->
   <!-- <include file="$(find Lidar_3DOD_2022)/launch/Lidar_3DOD_2022_launch.launch"/> -->
 
-  <include file="$(two_step_clustering_algorithm)/launch/VLP16_points_multiple.launch"/>
+  <include file="$(find two_step_clustering_algorithm)/launch/VLP16_points_multiple.launch"/>
 
   <node pkg="rviz" type="rviz" name="rviz" args=""/> 
 
